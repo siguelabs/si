@@ -2,24 +2,21 @@
 """Install the portable skill without changing host permissions or existing skills."""
 
 import argparse
+import json
 from pathlib import Path
+import secrets
 import shutil
 import sys
 
 
-SOURCE = Path(__file__).resolve().parents[1] / "skills" / "si-overnight"
-PROJECT_PATHS = {
-    "codex": ".agents/skills",
-    "claude": ".claude/skills",
-    "antigravity": ".agents/skills",
-    "pi": ".pi/skills",
-}
-USER_PATHS = {
-    "codex": ".agents/skills",
-    "claude": ".claude/skills",
-    "antigravity": ".gemini/config/skills",
-    "pi": ".pi/agent/skills",
-}
+REPOSITORY = Path(__file__).resolve().parents[1]
+SOURCE = REPOSITORY / "skills" / "si-overnight"
+# Shared with lib/install.mjs so both installers use the same destinations.
+HOSTS = json.loads((REPOSITORY / "lib" / "hosts.json").read_text(encoding="utf-8"))
+PROJECT_PATHS = {name: host["project"] for name, host in HOSTS.items()}
+USER_PATHS = {name: host["user"] for name, host in HOSTS.items()}
+# File manager metadata must not make an identical copy look edited.
+IGNORED = {".DS_Store", "Thumbs.db", "desktop.ini"}
 
 
 class InstallTargets(list):
@@ -30,9 +27,18 @@ class InstallTargets(list):
         self.base = base
 
 
+def existing_directory(path, label):
+    if not path.is_dir():
+        raise ValueError(f"{label} not found or not a directory: {path}")
+    return path
+
+
 def targets(platforms, scope, project, user_home=None):
     names = list(PROJECT_PATHS) if "all" in platforms else platforms
-    base = project.resolve() if scope == "project" else (user_home or Path.home())
+    if scope == "project":
+        base = existing_directory(project, "Project directory").resolve()
+    else:
+        base = existing_directory(user_home or Path.home(), "Home directory")
     paths = PROJECT_PATHS if scope == "project" else USER_PATHS
     return InstallTargets(
         dict.fromkeys(base / paths[name] / SOURCE.name for name in names), base
@@ -58,6 +64,8 @@ def manifest(directory):
         return None
     result = {}
     for item in directory.rglob("*"):
+        if item.name in IGNORED:
+            continue
         if item.is_symlink():
             return None
         if item.is_dir():
@@ -67,6 +75,18 @@ def manifest(directory):
         else:
             return None
     return result
+
+
+def copy_skill(destination):
+    """Copy beside the destination, then rename, so a failure leaves no partial install."""
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    staging = destination.parent / f".si-overnight-{secrets.token_hex(6)}"
+    try:
+        shutil.copytree(SOURCE, staging, ignore=shutil.ignore_patterns(*IGNORED))
+        staging.rename(destination)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
 
 
 def install(destinations, dry_run=False):
@@ -85,7 +105,8 @@ def install(destinations, dry_run=False):
             if manifest(destination) != expected:
                 raise ValueError(
                     f"Existing destination differs; nothing overwritten: {destination}\n"
-                    "Review and move the existing directory before reinstalling."
+                    "To replace it, run `npx si-overnight` with the same options plus "
+                    "--update, or move the existing directory first."
                 )
         else:
             pending.append(destination)
@@ -97,23 +118,26 @@ def install(destinations, dry_run=False):
         else:
             if base is not None:
                 check_destination(base, destination)
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copytree(SOURCE, destination)
+            copy_skill(destination)
             print(f"Installed: {destination}")
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--platform", nargs="+", required=True,
+        "--platform", action="extend", nargs="+", required=True,
         choices=[*PROJECT_PATHS, "all"],
     )
     parser.add_argument("--scope", choices=["project", "user"], default="project")
-    parser.add_argument("--project", type=Path, default=Path.cwd())
+    parser.add_argument("--project", type=Path)
     parser.add_argument("--dry-run", action="store_true")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.project is not None and args.scope == "user":
+        parser.error("--project applies only to --scope project.")
     try:
-        install(targets(args.platform, args.scope, args.project), args.dry_run)
+        install(
+            targets(args.platform, args.scope, args.project or Path.cwd()), args.dry_run
+        )
     except (OSError, ValueError) as error:
         print(f"Install failed: {error}", file=sys.stderr)
         return 1

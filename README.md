@@ -27,6 +27,9 @@ If npm asks whether to install the package, press Enter to continue.
 | Google Antigravity | `/si-overnight` |
 | pi | `/skill:si-overnight` |
 
+To update later, run `npx si-overnight@latest` again. It asks before replacing
+an older copy and keeps a backup of it.
+
 ## Use it tonight
 
 Here's an example for Codex. Use your app's command on the first line.

@@ -1,0 +1,26 @@
+{
+  "codex": {
+    "label": "Codex",
+    "command": "$si-overnight",
+    "project": ".agents/skills",
+    "user": ".agents/skills"
+  },
+  "claude": {
+    "label": "Claude Code",
+    "command": "/si-overnight",
+    "project": ".claude/skills",
+    "user": ".claude/skills"
+  },
+  "antigravity": {
+    "label": "Antigravity",
+    "command": "/si-overnight",
+    "project": ".agents/skills",
+    "user": ".gemini/config/skills"
+  },
+  "pi": {
+    "label": "pi",
+    "command": "/skill:si-overnight",
+    "project": ".pi/skills",
+    "user": ".pi/agent/skills"
+  }
+}

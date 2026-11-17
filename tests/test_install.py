@@ -30,6 +30,7 @@ class InstallTests(unittest.TestCase):
 
     def test_user_scope_paths_are_independent_of_current_project(self):
         user_home = self.root / "fake-user"
+        user_home.mkdir()
         expected = {
             user_home / ".agents/skills/si-overnight",
             user_home / ".claude/skills/si-overnight",
@@ -137,6 +138,41 @@ class InstallTests(unittest.TestCase):
             installer.install(installer.targets(["all"], "user", self.root, user_home))
         self.assertFalse((user_home / ".agents").exists())
         self.assertEqual(list(outside.iterdir()), [])
+
+    def test_repeated_platform_flags_install_every_platform(self):
+        status = installer.main([
+            "--platform", "claude", "--platform", "pi", "--project", str(self.root),
+        ])
+        self.assertEqual(status, 0)
+        self.assertTrue((self.root / ".claude/skills/si-overnight/SKILL.md").is_file())
+        self.assertTrue((self.root / ".pi/skills/si-overnight/SKILL.md").is_file())
+
+    def test_missing_project_is_rejected_without_creating_it(self):
+        missing = self.root / "typo"
+        self.assertEqual(installer.main(["--platform", "pi", "--project", str(missing)]), 1)
+        self.assertFalse(missing.exists())
+
+    def test_project_option_is_rejected_for_user_scope(self):
+        with self.assertRaises(SystemExit), patch("sys.stderr"):
+            installer.main([
+                "--platform", "pi", "--scope", "user", "--project", str(self.root),
+            ])
+        self.assertEqual(list(self.root.iterdir()), [])
+
+    def test_file_manager_metadata_does_not_count_as_an_edit(self):
+        destinations = installer.targets(["codex"], "project", self.root)
+        installer.install(destinations)
+        (destinations[0] / ".DS_Store").write_bytes(b"finder")
+        installer.install(destinations)
+        self.assertEqual(
+            sorted(path.name for path in destinations[0].parent.iterdir()), ["si-overnight"]
+        )
+
+    def test_hosts_match_node_installer_table(self):
+        hosts = installer.HOSTS
+        self.assertEqual(list(hosts), ["codex", "claude", "antigravity", "pi"])
+        for host in hosts.values():
+            self.assertEqual(set(host), {"label", "command", "project", "user"})
 
 
 if __name__ == "__main__":

@@ -1,8 +1,9 @@
 name: CI
 
 on:
+  # Pull requests cover feature branches; pushes to main verify merged code.
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
   workflow_call:
 
@@ -11,11 +12,12 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest]
         node: ['20', '24']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -29,10 +31,10 @@ jobs:
       - run: npm --ignore-scripts test
       - run: python3 -m unittest discover -s tests -v
       - name: Pack and install offline
-        if: matrix.node == '24'
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '24'
         run: node .github/scripts/pack-smoke.mjs "$RUNNER_TEMP/npm-package"
       - name: Upload tested npm tarball
-        if: matrix.node == '24'
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '24'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: npm-package
