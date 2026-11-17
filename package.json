@@ -1,6 +1,6 @@
 {
   "name": "si-overnight",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Install a portable overnight coding workflow for Codex, Claude Code, Antigravity, and pi.",
   "repository": {
     "type": "git",
