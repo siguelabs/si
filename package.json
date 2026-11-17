@@ -15,8 +15,7 @@
     "lib/",
     "skills/si-overnight/",
     "README.md",
-    "docs/tr/README.md",
-    "docs/assets/overnight-workflow.gif"
+    "docs/tr/README.md"
   ],
   "engines": {
     "node": ">=20"
@@ -32,5 +31,5 @@
     "pi",
     "overnight"
   ],
-  "license": "UNLICENSED"
+  "license": "MIT"
 }

@@ -28,6 +28,9 @@ npm paketi kurmak için onay isterse Enter’a bas.
 | Google Antigravity | `/si-overnight` |
 | pi | `/skill:si-overnight` |
 
+Daha sonra güncellemek için `npx si-overnight@latest` komutunu yeniden çalıştır.
+Eski kopyayı değiştirmeden önce sorar ve bir yedeğini saklar.
+
 Örneğin Codex’te şöyle başlayabilirsin.
 
 ```text

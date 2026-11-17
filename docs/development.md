@@ -23,13 +23,17 @@ python3 scripts/install.py --platform all --project /absolute/path/to/project
 | --- | --- |
 | `--platform` | `codex`, `claude`, `antigravity`, `pi`, or `all`. Repeat the flag to select multiple apps. |
 | `--scope` | `project` by default when using flags, or `user` for all projects. |
-| `--project` | Existing project folder. Defaults to the current directory and applies to project scope. |
+| `--project` | Existing project folder. Defaults to the current directory. Only valid with project scope. |
+| `--update` | Replace a copy whose contents differ. The old copy is moved to a `si-overnight-backups` folder next to the host's `skills` folder first. |
 | `--dry-run` | Show and validate the destinations without writing files. |
 | `--help` | Show the CLI options and examples. |
 
 `npx si-overnight install` also opens guided setup. The installer leaves
-identical copies alone and protects different files from overwrites. To update
-an existing copy with different contents, review and move it, then reinstall.
+identical copies alone and never overwrites a different copy silently: guided
+setup asks first, and flag mode requires `--update`. Each copy is written to a
+temporary folder and renamed into place, so an interrupted install leaves no
+partial skill behind. The Python installer shares the host table in
+`lib/hosts.json` but has no `--update`; use the Node installer to replace a copy.
 
 For install paths, permissions, and execution limits, see the
 [platform guide](../skills/si-overnight/references/platforms.md). See the
@@ -54,12 +58,12 @@ To regenerate the workflow illustration, install Pillow and run
 
 ## Release to npm
 
-Branch pushes and pull requests run the tests and build the `npm-package`
-artifact. A stable tag such as `v0.1.3` must match the version in `package.json`.
+Pull requests and pushes to `main` run the tests on Linux and macOS and build
+the `npm-package` artifact. A stable tag such as `v0.1.3` must match the version in `package.json`.
 The release workflow tests the tag and publishes the verified archive.
 
 The npm package uses [Trusted Publishing](https://docs.npmjs.com/trusted-publishers/).
 The authorized GitHub repository is `siguelabs/si`, the filename is `release.yml`,
 and the environment field is empty. The connection must allow `npm publish`.
 
-`package.json` declares `UNLICENSED`.
+The project is released under the [MIT License](../LICENSE).

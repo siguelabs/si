@@ -32,7 +32,7 @@ async function guided(t, { args = [], answers = [], project, userHome } = {}) {
   const error = new Writable({
     write(chunk, encoding, done) {
       stderr += chunk;
-      if (chunk.toString().startsWith('Choose 1-')) {
+      if (/: $/.test(chunk.toString())) {
         const answer = answers.shift();
         queueMicrotask(() => {
           if (answer === undefined) input.end();
@@ -144,7 +144,7 @@ test('cancelled, invalid, and closed guided input never writes files', async (t)
   mkdirSync(userHome);
   for (const answers of [[], [''], ['q'], ['\u0003'], ['1'], ['1', 'cancel'], ['1', '\u0003'], ['99'], ['1', '99']]) {
     const result = await guided(t, { answers: [...answers], project, userHome });
-    assert.equal(result.status, answers.includes('99') ? 1 : 0, result.stderr);
+    assert.equal(result.status, 0, result.stderr);
     assert.match(result.stderr, /No files were written/);
     assert.doesNotMatch(result.stdout, /Installed|Ready/);
     assert.deepEqual(readdirSync(project), []);
@@ -152,18 +152,43 @@ test('cancelled, invalid, and closed guided input never writes files', async (t)
   }
 });
 
-test('guided setup preserves differing existing content through installer preflight', async (t) => {
+test('guided setup re-asks after an invalid answer instead of exiting', async (t) => {
+  const project = temporary(t);
+  const result = await guided(t, { answers: ['99', 'pi', 'nowhere', '2'], project });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stderr, /Invalid coding agent/);
+  assert.match(result.stderr, /Invalid install location/);
+  assert.ok(existsSync(join(project, '.pi/skills/si-overnight/SKILL.md')));
+});
+
+test('guided setup asks before replacing a differing copy and keeps it when declined', async (t) => {
   const project = temporary(t);
   const { destinations } = installationTargets({ platforms: ['all'], project });
   const conflict = destinations.at(-1);
   mkdirSync(conflict, { recursive: true });
   writeFileSync(join(conflict, 'SKILL.md'), 'User-owned version');
-  const result = await guided(t, { answers: ['5', '2'], project });
-  assert.equal(result.status, 1);
-  assert.match(result.stderr, /Existing destination differs/);
-  assert.doesNotMatch(result.stdout, /Ready/);
-  assert.equal(readFileSync(join(conflict, 'SKILL.md'), 'utf8'), 'User-owned version');
-  assert.equal(existsSync(destinations[0]), false);
+  for (const answers of [['5', '2'], ['5', '2', 'n'], ['5', '2', '']]) {
+    const result = await guided(t, { answers: [...answers], project });
+    assert.equal(result.status, 0, result.stderr);
+    assert.ok(result.stderr.includes(conflict));
+    assert.match(result.stderr, /No files were written/);
+    assert.doesNotMatch(result.stdout, /Ready/);
+    assert.equal(readFileSync(join(conflict, 'SKILL.md'), 'utf8'), 'User-owned version');
+    assert.equal(existsSync(destinations[0]), false);
+  }
+});
+
+test('guided setup replaces a differing copy after confirmation and backs it up', async (t) => {
+  const project = temporary(t);
+  const { destinations: [destination] } = installationTargets({ platforms: ['pi'], project });
+  mkdirSync(destination, { recursive: true });
+  writeFileSync(join(destination, 'SKILL.md'), 'Old version');
+  const result = await guided(t, { answers: ['pi', '2', 'y'], project });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Updated:/);
+  assert.equal(readFileSync(join(destination, 'SKILL.md'), 'utf8'), readFileSync(join(SKILL_SOURCE, 'SKILL.md'), 'utf8'));
+  const [backup] = readdirSync(join(project, '.pi/si-overnight-backups'));
+  assert.equal(readFileSync(join(project, '.pi/si-overnight-backups', backup, 'SKILL.md'), 'utf8'), 'Old version');
 });
 
 test('install alias preserves explicit flag behavior and prints host invocation', (t) => {
@@ -270,6 +295,68 @@ test('source symlinks and source/destination overlap fail without writes', (t) =
   writeFileSync(join(overlappingSource, 'SKILL.md'), 'skill');
   assert.throws(() => installSkill({ platforms: ['codex'], project: overlappingProject, source: overlappingSource, log: quiet }), /overlap/);
   assert.deepEqual(readdirSync(overlappingSource), ['SKILL.md']);
+});
+
+test('differing copy error points to --update and --update backs it up outside the skills directory', (t) => {
+  const project = temporary(t);
+  const { destinations } = installationTargets({ platforms: ['all'], project });
+  const conflict = destinations.at(-1);
+  mkdirSync(conflict, { recursive: true });
+  writeFileSync(join(conflict, 'SKILL.md'), 'Old version');
+
+  const dryRun = run(['--platform', 'all', '--project', project, '--update', '--dry-run'], project);
+  assert.equal(dryRun.status, 0, dryRun.stderr);
+  assert.match(dryRun.stdout, /Would update:/);
+  assert.equal(readFileSync(join(conflict, 'SKILL.md'), 'utf8'), 'Old version');
+
+  const refused = run(['--platform', 'all', '--project', project], project);
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /--update/);
+
+  const updated = run(['--platform', 'all', '--project', project, '--update'], project);
+  assert.equal(updated.status, 0, updated.stderr);
+  for (const destination of destinations) {
+    assert.equal(readFileSync(join(destination, 'SKILL.md'), 'utf8'), readFileSync(join(SKILL_SOURCE, 'SKILL.md'), 'utf8'));
+    assert.deepEqual(readdirSync(dirname(destination)), ['si-overnight']);
+  }
+  const backups = join(dirname(dirname(conflict)), 'si-overnight-backups');
+  const [backup] = readdirSync(backups);
+  assert.equal(readFileSync(join(backups, backup, 'SKILL.md'), 'utf8'), 'Old version');
+});
+
+test('missing project and --project with user scope fail with clear messages and no writes', (t) => {
+  const root = temporary(t);
+  const missing = join(root, 'typo');
+  const result = run(['--platform', 'pi', '--project', missing], root);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Project directory not found: .*typo/);
+  assert.doesNotMatch(result.stderr, /ENOENT/);
+  assert.equal(existsSync(missing), false);
+
+  const conflicting = run(['--platform', 'pi', '--scope', 'user', '--project', root, '--dry-run'], root);
+  assert.equal(conflicting.status, 1);
+  assert.match(conflicting.stderr, /--project applies only to --scope project/);
+  assert.deepEqual(readdirSync(root), []);
+});
+
+test('file manager metadata does not make an identical copy look different', (t) => {
+  const project = temporary(t);
+  const options = { platforms: ['codex'], project, log: quiet };
+  const [destination] = installSkill(options);
+  writeFileSync(join(destination, '.DS_Store'), 'finder');
+  const messages = [];
+  installSkill({ ...options, log: (message) => messages.push(message) });
+  assert.deepEqual(messages, [`Already installed: ${destination}`]);
+});
+
+test('user scope guidance does not point at a single project', (t) => {
+  const root = temporary(t);
+  const result = spawnSync(process.execPath, [cli, '--platform', 'pi', '--scope', 'user'], {
+    cwd: root, encoding: 'utf8', timeout: 10_000, env: { ...process.env, HOME: root, USERPROFILE: root },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /in any of your projects/);
+  assert.ok(existsSync(join(root, '.pi/agent/skills/si-overnight/SKILL.md')));
 });
 
 test('explicit project root may be an existing directory alias', (t) => {
