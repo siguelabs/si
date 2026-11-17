@@ -1,0 +1,36 @@
+{
+  "name": "si-overnight",
+  "version": "0.1.1",
+  "description": "Install a portable overnight coding workflow for Codex, Claude Code, Antigravity, and pi.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/siguelabs/si.git"
+  },
+  "type": "module",
+  "bin": {
+    "si-overnight": "bin/si-overnight.mjs"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "skills/si-overnight/",
+    "README.md",
+    "README.tr.md",
+    "docs/assets/overnight-workflow.gif"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "keywords": [
+    "agent-skills",
+    "codex",
+    "claude-code",
+    "antigravity",
+    "pi",
+    "overnight"
+  ],
+  "license": "UNLICENSED"
+}
