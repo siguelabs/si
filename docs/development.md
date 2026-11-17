@@ -59,7 +59,7 @@ To regenerate the workflow illustration, install Pillow and run
 ## Release to npm
 
 Pull requests and pushes to `main` run the tests on Linux and macOS and build
-the `npm-package` artifact. A stable tag such as `v0.1.3` must match the version in `package.json`.
+the `npm-package` artifact. A stable tag such as `v0.1.4` must match the version in `package.json`.
 The release workflow tests the tag and publishes the verified archive.
 
 The npm package uses [Trusted Publishing](https://docs.npmjs.com/trusted-publishers/).
