@@ -1,6 +1,6 @@
 # si-overnight
 
-**English** · [Türkçe](https://github.com/siguelabs/si/blob/main/README.tr.md)
+**English** · [Türkçe](https://github.com/siguelabs/si/blob/main/docs/tr/README.md)
 
 Give your coding agent a clear plan before you sleep. `si-overnight` helps it
 finish agreed work, test the changes, save checkpoints, and leave a morning report.
@@ -20,19 +20,23 @@ workers are optional and require host support.*
 
 ## Quick start
 
-Use the source checkout today. The Node.js installer requires **Node.js 20+**,
-has no package dependencies, and does not require Python.
+Install [Node.js](https://nodejs.org/en/download) **20 or newer**, then run this
+one command in your terminal:
 
 ```bash
-git clone https://github.com/siguelabs/si.git
-cd si
-node bin/si-overnight.mjs --platform codex --project /absolute/path/to/project
+npx si-overnight
 ```
 
-If you already have this repository, run the `node bin/si-overnight.mjs ...`
-command from its root. Choose `claude`, `antigravity`, or `pi` for another host,
-or `all` for every supported host. The target project directory must already
-exist. Open that project in your host and invoke the skill with its command below.
+The guided installer walks you through the rest:
+
+1. Choose **Codex**, **Claude Code**, **Antigravity**, **pi**, or **All**.
+2. Choose **All projects** (recommended) or **Current project**.
+3. Open your coding agent's chat and run the skill command printed by the installer.
+
+No repository clone, Python, or CLI flags are required. All projects installs the
+skill in your user directory so you can use it across projects. Current project
+installs it in the directory where you ran the command. You can also spell the
+installer command as `npx si-overnight install`.
 
 For example, in Codex:
 
@@ -47,9 +51,9 @@ Replace the tasks and deadline with your own. The agent inspects the project and
 collects the missing decisions before implementation starts. A bare invocation
 starts intake; it does not authorize an unspecified night of changes.
 
-### npm installation
+### Scripted and source installation
 
-Install the latest published release:
+For automation, choose the host and scope explicitly:
 
 ```bash
 npx --yes si-overnight --platform all --project /absolute/path/to/project
@@ -60,7 +64,7 @@ To try the current package without a registry release, run from this repository:
 
 ```bash
 npm pack --ignore-scripts
-npm exec --yes --package ./si-overnight-0.1.1.tgz -- si-overnight --platform codex --project /absolute/path/to/project
+npm exec --yes --package ./si-overnight-0.1.2.tgz -- si-overnight --platform codex --project /absolute/path/to/project
 ```
 
 Installing the npm package, including globally, only makes the installer command
@@ -167,11 +171,14 @@ node bin/si-overnight.mjs --help
 
 | Option | Behavior |
 | --- | --- |
-| `--platform <name>` | Required. `codex`, `claude`, `antigravity`, `pi`, or `all`; repeatable. |
-| `--scope <scope>` | `project` by default, or `user`. |
+| `--platform <name>` | For scripted installation: `codex`, `claude`, `antigravity`, `pi`, or `all`; repeatable. |
+| `--scope <scope>` | Explicit flags default to `project`; guided setup recommends `user` (All projects). |
 | `--project <path>` | Existing project directory; defaults to the current directory. Used for project scope. |
 | `--dry-run` | Validate and show destinations without writing files. |
 | `--help`, `-h` | Show CLI help. |
+
+Guided setup needs an interactive terminal. In CI or scripts, pass `--platform`
+and the desired `--scope` explicitly.
 
 The installer leaves identical installations untouched and refuses to overwrite
 different content. To update, review and move the existing skill directory, then
@@ -246,7 +253,7 @@ for 14 days. No dependency installation or lockfile is needed.
 
 ### npm releases
 
-A stable tag such as `v0.1.1` must match `package.json`. `release.yml` reruns CI,
+A stable tag such as `v0.1.2` must match `package.json`. `release.yml` reruns CI,
 verifies the artifact's checksum, and publishes that same tarball with public
 access and provenance. Prerelease tags are rejected. Only the publish job gets
 OIDC permission; it uses Node.js 24 and checks for npm 11.5.1 or newer. Actions

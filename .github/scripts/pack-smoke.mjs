@@ -38,6 +38,13 @@ try {
     'pack', '--ignore-scripts', '--json', '--pack-destination', output,
     '--cache', join(scratch, 'cache'),
   ]));
+  assert.deepEqual(
+    packed.files
+      .filter(({ path }) => !path.includes('/') && /^readme(?:\.|$)/i.test(path))
+      .map(({ path }) => path),
+    ['README.md'],
+    'npm must contain exactly one root README so English is selected',
+  );
   assert.equal(packed.filename, basename(packed.filename));
   const archive = join(output, packed.filename);
   const prefix = join(scratch, 'installed');
@@ -45,6 +52,12 @@ try {
     '--no-audit', '--no-fund', '--no-save', '--package-lock=false',
     '--cache', join(scratch, 'install-cache')]);
   const installed = join(prefix, 'node_modules', pkg.name);
+  for (const document of ['README.md', 'docs/tr/README.md']) {
+    assert.deepEqual(
+      readFileSync(join(installed, document)),
+      readFileSync(join(source, document)),
+    );
+  }
   const skill = join(source, 'skills', 'si-overnight');
   assert.deepEqual(files(join(installed, 'skills', 'si-overnight')), files(skill));
   const cli = join(prefix, 'node_modules', '.bin', 'si-overnight');

@@ -15,8 +15,27 @@ Codex, Claude Code, Google Antigravity ve pi için kurulum aracı içerir.
 
 ## Hızlı başlangıç
 
-Node.js **20 veya üzeri** yeterli. Npm CLI'si Python veya ek runtime bağımlılığı
-gerektirmez. Bu deponun kök dizininde:
+Önce [Node.js](https://nodejs.org/en/download) **20 veya üzerini** kur. Ardından
+terminalde tek komut çalıştır:
+
+```bash
+npx si-overnight
+```
+
+Kurulum geri kalan adımlarda sana rehberlik eder:
+
+1. **Codex**, **Claude Code**, **Antigravity**, **pi** veya **All** seç.
+2. **All projects** (önerilen) ya da **Current project** seç.
+3. Coding agent'ının sohbetini açıp kurucunun gösterdiği skill komutunu yaz.
+
+Repo klonlaman, Python kurman veya CLI bayraklarını bilmen gerekmez. All projects
+skill'i kullanıcı dizinine kurar ve farklı projelerde kullanmanı sağlar. Current
+project komutu çalıştırdığın dizine kurar. Aynı akışı `npx si-overnight install`
+ile de başlatabilirsin.
+
+### Betiklerden veya kaynak koddan kurulum
+
+Otomasyonda platform ve kapsamı açıkça seç. Bu deponun kök dizininde:
 
 ```bash
 # Önce kurulum hedeflerini gör.
@@ -181,11 +200,14 @@ Goal, zamanlanmış görev veya arka plan runner'ı oluşturmaz.
 
 | Seçenek | Değer / davranış |
 | --- | --- |
-| `--platform` | `codex`, `claude`, `antigravity`, `pi` veya `all`; zorunlu. |
-| `--scope` | `project` (varsayılan) veya `user`. |
+| `--platform` | Betik kurulumunda `codex`, `claude`, `antigravity`, `pi` veya `all`; tekrarlanabilir. |
+| `--scope` | Bayraklı kurulumda varsayılan `project`; rehberli kurulum `user` (All projects) önerir. |
 | `--project` | Mevcut proje dizini; varsayılan geçerli dizin. Kullanıcı kapsamını değiştirmez. |
 | `--dry-run` | Hedefleri gösterir, dosya yazmaz. |
 | `--help` | Yardımı gösterir. |
+
+Rehberli kurulum etkileşimli terminal gerektirir. CI veya betiklerde `--platform`
+ve istediğin `--scope` değerini açıkça ver.
 
 Npm CLI'sinde birden fazla platform için bayrağı tekrarla:
 
@@ -240,7 +262,7 @@ Yayın işi Node.js 24 ve npm ≥11.5.1 kullanır/kontrol eder.
 Kod yapısı: `skills/si-overnight/` ortak çalışma talimatlarını, `bin/` ve `lib/`
 Node kurucusunu, `scripts/install.py` Python alternatifini, `tests/` kontrolleri,
 `.github/` CI ve release akışlarını içerir. Platformlara ilişkin resmi kaynaklar
-[uyumluluk notlarında](skills/si-overnight/references/platforms.md) bulunur.
+[uyumluluk notlarında](../../skills/si-overnight/references/platforms.md) bulunur.
 
 Katkı yaparken kurucu değişikliklerini ilgili testlerle doğrula; çalışma akışı
 değişikliklerinde iki dildeki README'yi birlikte güncelle. Paket şu anda
